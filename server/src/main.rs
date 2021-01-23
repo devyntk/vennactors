@@ -7,6 +7,8 @@ use serde::Deserialize;
 use flexi_logger::{Duplicate, Logger};
 use app_dirs2::{app_dir, AppDataType, AppInfo};
 use log::{error, debug};
+use warp::Filter;
+use std::net::{SocketAddr, IpAddr};
 
 #[derive(Deserialize)]
 struct Config {
@@ -27,7 +29,8 @@ pub const APP_INFO: AppInfo = AppInfo {
     author: "devyntk",
 };
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let log_dir =
         app_dir(AppDataType::UserConfig, &APP_INFO, "log/").expect("Error getting log directory");
 
@@ -65,7 +68,14 @@ fn main() {
             panic!()
         }
     };
-    debug!("{}", config);
+    debug!("Config: {}", config);
 
+    let routes = warp::any().map(|| "Hello, World!");
 
+    let ip = config.ip.unwrap_or("127.0.0.1".into());
+    let port = config.port.unwrap_or("8080".parse().unwrap());
+
+    let addr = SocketAddr::new(IpAddr::V4(ip.parse().unwrap()), port);
+
+    warp::serve(routes).run(addr).await;
 }
