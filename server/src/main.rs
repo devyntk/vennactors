@@ -1,3 +1,8 @@
+mod filters;
+mod handlers;
+mod api_structs;
+mod tmdb_client;
+
 use std::path::Path;
 use std::io::prelude::*;
 use std::fs::File;
@@ -6,9 +11,10 @@ use toml::from_str;
 use serde::Deserialize;
 use flexi_logger::{Duplicate, Logger};
 use app_dirs2::{app_dir, AppDataType, AppInfo};
-use log::{error, debug};
+use log::{error, debug, info};
 use warp::Filter;
 use std::net::{SocketAddr, IpAddr};
+use crate::tmdb_client::TMDBClient;
 
 #[derive(Deserialize)]
 struct Config {
@@ -34,7 +40,7 @@ async fn main() {
     let log_dir =
         app_dir(AppDataType::UserConfig, &APP_INFO, "log/").expect("Error getting log directory");
 
-    Logger::with_env_or_str("info")
+    Logger::with_env_or_str("debug")
         .log_to_file()
         .directory(log_dir)
         .duplicate_to_stdout(Duplicate::Debug)
@@ -69,6 +75,13 @@ async fn main() {
         }
     };
     debug!("Config: {}", config);
+
+    let client = reqwest::Client::builder()
+        .build()
+        .expect("should be able to build reqwest client");
+
+    let mut req_client = TMDBClient::new(config.tmdb, client);
+    info!("{:?}", req_client.get_config().await);
 
     let routes = warp::any().map(|| "Hello, World!");
 
