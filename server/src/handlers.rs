@@ -1,8 +1,13 @@
-use crate::api_structs::*;
-use reqwest::get;
+use std::convert::Infallible;
+use crate::tmdb_client::TMDBClient;
 
-// pub async fn get_config(api_details: ApiDetails) -> Configuration {
-//     let resp = api_details.client
-//         .get("api.themoviedb.org/3/configuration")
-//         .await;
-// }
+pub async fn search_handler(search: String, mut client: TMDBClient) -> Result<impl warp::Reply, Infallible> {
+    return match client.multi_search(search.clone()).await {
+        Ok(result) => {
+            Ok(warp::reply::json(&result))
+        }
+        Err(_err) => {
+            Ok(warp::reply::json(&search))
+        }
+    }
+}

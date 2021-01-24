@@ -11,10 +11,11 @@ use toml::from_str;
 use serde::Deserialize;
 use flexi_logger::{Duplicate, Logger};
 use app_dirs2::{app_dir, AppDataType, AppInfo};
-use log::{error, debug, info};
-use warp::Filter;
+use log::{error, debug};
 use std::net::{SocketAddr, IpAddr};
+
 use crate::tmdb_client::TMDBClient;
+use crate::filters::filters;
 
 #[derive(Deserialize)]
 struct Config {
@@ -78,17 +79,18 @@ async fn main() {
 
     let client = reqwest::Client::builder()
         .build()
-        .expect("should be able to build reqwest client");
+        .expect("couldn't build reqwest client");
 
-    let mut req_client = TMDBClient::new(config.tmdb, client);
-    info!("{:?}", req_client.get_config().await);
-
-    let routes = warp::any().map(|| "Hello, World!");
+    let req_client = TMDBClient::new(config.tmdb, client);
+    // info!("{:?}", req_client.get_config().await);
+    // info!("{:?}", req_client.multi_search("Blu del".into()).await);
+    // info!("{:?}", req_client.movie_credits(508442).await);
+    // info!("{:?}", req_client.tv_credits(580).await);
 
     let ip = config.ip.unwrap_or("127.0.0.1".into());
     let port = config.port.unwrap_or("8080".parse().unwrap());
 
     let addr = SocketAddr::new(IpAddr::V4(ip.parse().unwrap()), port);
 
-    warp::serve(routes).run(addr).await;
+    warp::serve(filters(req_client)).run(addr).await;
 }
